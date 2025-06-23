@@ -1,4 +1,4 @@
-# Streamlit Web App Lengkap: Klasterisasi Siswa dengan K-Means & K-Medoids
+# Streamlit Web App Lengkap: Klasterisasi Siswa dengan K-Means & K-Medoids (versi pyclustering)
 
 import streamlit as st
 import pandas as pd
@@ -9,9 +9,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import davies_bouldin_score
 from sklearn.impute import SimpleImputer
-from sklearn_extra.cluster import KMedoids
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.colors as mcolors
+from pyclustering.cluster.kmedoids import kmedoids
+import random
 
 st.set_page_config(page_title="Klasterisasi Siswa SMP", layout="wide")
 st.title("Klasterisasi Siswa SMP Berdasarkan Nilai Rapor")
@@ -51,9 +52,17 @@ if uploaded_file is not None:
     kmeans = KMeans(n_clusters=k, random_state=42)
     df["Klaster_KMeans"] = kmeans.fit_predict(X_scaled)
 
-    # K-Medoids
-    kmedoids = KMedoids(n_clusters=k, random_state=42)
-    df["Klaster_KMedoids"] = kmedoids.fit_predict(X_scaled)
+    # K-Medoids dengan pyclustering
+    data_points = X_scaled.tolist()
+    initial_medoids = random.sample(range(len(data_points)), k)
+    kmedoids_instance = kmedoids(data_points, initial_medoids)
+    kmedoids_instance.process()
+    clusters = kmedoids_instance.get_clusters()
+    labels_kmedoids = np.zeros(len(data_points))
+    for idx, cluster in enumerate(clusters):
+        for point in cluster:
+            labels_kmedoids[point] = idx
+    df['Klaster_KMedoids'] = labels_kmedoids.astype(int)
 
     # DBI
     dbi_kmeans = davies_bouldin_score(X_scaled, df["Klaster_KMeans"])
